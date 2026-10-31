@@ -5,16 +5,11 @@
 namespace {
 constexpr uint8_t CHANNELS = 4;
 constexpr uint8_t HISTORY_POINTS = 24;
-constexpr uint32_t CONVERSION_MS = 3;
-constexpr uint32_t RECONNECT_MS = 2000;
 lv_obj_t *gStatus, *gRunButton, *gRunLabel;
 lv_obj_t *gValueLabel[CHANNELS], *gArc[CHANNELS], *gChart[CHANNELS];
 lv_chart_series_t *gSeries[CHANNELS];
-uint8_t gChannel = 0;
-bool gPending = false;
 bool gRunning = true;
-uint32_t gConversionAt = 0;
-uint32_t gReconnectAt = 0;
+uint32_t gLastSample[CHANNELS] = {0, 0, 0, 0};
 
 lv_color_t channelColor(uint8_t i)
 {
@@ -25,7 +20,6 @@ lv_color_t channelColor(uint8_t i)
 void onRun(lv_event_t *)
 {
     gRunning = !gRunning;
-    gPending = false;
     lv_label_set_text(gRunLabel, gRunning ? "PAUSE" : "RESUME");
     lv_obj_set_style_bg_color(gRunButton, gRunning ? lv_color_hex(0x214A5A) : lv_color_hex(0x177B61), 0);
     lv_label_set_text(gStatus, gRunning ? "LIVE  |  กำลังอ่านทั้ง 4 ช่อง" : "HOLD  |  แตะ RESUME เพื่ออ่านต่อ");
@@ -65,34 +59,23 @@ void updateChannel(uint8_t channel, int16_t raw)
     animateGauge(gArc[channel], shown);
     lv_chart_set_next_value(gChart[channel], gSeries[channel], static_cast<lv_coord_t>(shown));
     lv_chart_refresh(gChart[channel]);
-    lv_label_set_text_fmt(gStatus, "LIVE  |  ADS1115 0x%02X  |  A0-A3  |  ~12 Hz/channel", hal::adsAddress());
+    lv_label_set_text_fmt(gStatus, "LIVE  |  ADS1115 0x%02X  |  A0-A3  |  SHARED SCAN", hal::adsAddress());
     lv_obj_set_style_text_color(gStatus, lv_color_hex(0x45D6C5), 0);
 }
 
 void tick(lv_timer_t *)
 {
-    const uint32_t now = millis();
     if (!hal::adsOnline()) {
         showOffline();
-        if (now - gReconnectAt >= RECONNECT_MS) {
-            gReconnectAt = now;
-            hal::adsBegin();
-        }
         return;
     }
     if (!gRunning) return;
-    if (gPending) {
-        if (now - gConversionAt < CONVERSION_MS) return;
-        int16_t raw = 0;
-        if (hal::adsRead(raw)) updateChannel(gChannel, raw);
-        else { showOffline(); return; }
-        gPending = false;
-        gChannel = static_cast<uint8_t>((gChannel + 1) % CHANNELS);
+    for (uint8_t i = 0; i < CHANNELS; ++i) {
+        const uint32_t samples = hal::adsSamples(i);
+        if (samples == gLastSample[i]) continue;
+        gLastSample[i] = samples;
+        updateChannel(i, hal::adsRaw(i));
     }
-    if (hal::adsStart(gChannel)) {
-        gPending = true;
-        gConversionAt = now;
-    } else showOffline();
 }
 
 lv_obj_t *makeGauge(lv_obj_t *parent, uint8_t i)

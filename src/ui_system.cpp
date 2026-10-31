@@ -23,7 +23,7 @@ void tick(lv_timer_t *)
 
 }  // namespace
 
-void ui_system_tab(lv_obj_t *tab)
+void ui_system_info_tab(lv_obj_t *tab)
 {
     lv_obj_t *card = ui_card(tab, "บอร์ด");
     esp_chip_info_t chip;
@@ -46,4 +46,30 @@ void ui_system_tab(lv_obj_t *tab)
 
     lv_timer_create(tick, 1000, nullptr);
     tick(nullptr);
+}
+
+void ui_system_tab(lv_obj_t *tab)
+{
+    lv_obj_t *settings = lv_tabview_create(tab, LV_DIR_TOP, 30);
+    lv_obj_set_size(settings, LV_PCT(100), LV_PCT(100));
+    lv_obj_clear_flag(lv_tabview_get_content(settings), LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *buttons = lv_tabview_get_tab_btns(settings);
+    lv_obj_set_style_text_font(buttons, &font_th_16, 0);
+    lv_obj_set_style_pad_all(buttons, 0, 0);
+
+    struct Group { const char *name; void (*build)(lv_obj_t *); };
+    const Group groups[] = {
+        {"จอ/สัมผัส", [](lv_obj_t *p) { ui_display_tab(p); ui_touch_tab(p); }},
+        {"RGB/เสียง", [](lv_obj_t *p) { ui_led_tab(p); ui_sound_tab(p); }},
+        {"PCF/ADC", [](lv_obj_t *p) { ui_pcf_tab(p); ui_adc_tab(p); }},
+        {"ข้อมูล", ui_system_info_tab},
+    };
+    for (const Group &g : groups) {
+        lv_obj_t *page = lv_tabview_add_tab(settings, g.name);
+        lv_obj_set_style_pad_all(page, 6, 0);
+        lv_obj_set_style_pad_row(page, 6, 0);
+        lv_obj_set_flex_flow(page, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_scrollbar_mode(page, LV_SCROLLBAR_MODE_ACTIVE);
+        g.build(page);
+    }
 }

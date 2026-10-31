@@ -2,7 +2,7 @@
 
 // =====================================================================
 //  ui.h -- ส่วนกลางของ UI (LVGL 8.3)
-//    ui_main.cpp       สร้าง tabview 5 แท็บ + ฟังก์ชันช่วยสร้าง widget
+//    ui_main.cpp       แท็บหลัก Smart Farm / ระบบ + ฟังก์ชันช่วยสร้าง widget
 //    ui_display.cpp    แท็บ "จอภาพ"  สี / ข้อความ / ตั้งค่าจอ / ทดสอบเต็มจอ
 //    ui_touch.cpp      แท็บ "สัมผัส" ค่าดิบ / พิกัด / วาดเส้น / ทดสอบความแม่นยำ 9 จุด
 //    ui_calibrate.cpp  หน้า calibrate จอสัมผัส (5 จุด + จุดตรวจสอบ)
@@ -29,8 +29,10 @@ void ui_touch_tab(lv_obj_t *tab);
 void ui_led_tab(lv_obj_t *tab);
 void ui_pcf_tab(lv_obj_t *tab);
 void ui_adc_tab(lv_obj_t *tab);
+void ui_farm_tab(lv_obj_t *tab);
 void ui_sound_tab(lv_obj_t *tab);
 void ui_system_tab(lv_obj_t *tab);
+void ui_system_info_tab(lv_obj_t *tab);
 
 // ---- หน้าเต็มจอ (วางบน lv_layer_top ทับทุกอย่าง) ----
 void ui_calibrate_start(bool firstTime);

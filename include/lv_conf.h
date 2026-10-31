@@ -53,6 +53,7 @@
 #define LV_USE_BTN 1
 #define LV_USE_BTNMATRIX 1
 #define LV_USE_SWITCH 1
+#define LV_USE_DROPDOWN 1
 #define LV_USE_SLIDER 1
 #define LV_USE_BAR 1
 #define LV_USE_ARC 1

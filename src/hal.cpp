@@ -15,6 +15,15 @@ bool gPcfOnline = false;
 uint8_t gPcfLeds = 0;
 bool gAdsOnline = false;
 uint8_t gAdsAddress = cyd::ADS1115_ADDRESS;
+uint8_t gPcfSwitchMask = 0;
+bool gPcfSwitchValid = false;
+uint32_t gPcfPollAt = 0;
+int16_t gAdsRaw[4] = {0, 0, 0, 0};
+uint32_t gAdsSampleCount[4] = {0, 0, 0, 0};
+uint8_t gAdsChannel = 0;
+bool gAdsPending = false;
+uint32_t gAdsConversionAt = 0;
+uint32_t gAdsReconnectAt = 0;
 }  // namespace
 
 Preferences &prefs()
@@ -45,6 +54,7 @@ bool pcfBegin()
 }
 
 bool pcfOnline() { return gPcfOnline; }
+uint8_t pcfLedMask() { return gPcfLeds; }
 
 bool pcfWriteLeds(uint8_t onMask)
 {
@@ -65,6 +75,16 @@ bool pcfReadSwitches(uint8_t &pressedMask)
     pressedMask = static_cast<uint8_t>((~(port >> 4)) & 0x0F);
     return true;
 }
+
+void pcfPoll(uint32_t now)
+{
+    if (now - gPcfPollAt < 30) return;
+    gPcfPollAt = now;
+    gPcfSwitchValid = pcfReadSwitches(gPcfSwitchMask);
+}
+
+uint8_t pcfSwitchMask() { return gPcfSwitchMask; }
+bool pcfSwitchValid() { return gPcfSwitchValid; }
 
 bool adsBegin()
 {
@@ -112,6 +132,33 @@ bool adsRead(int16_t &raw)
     raw = static_cast<int16_t>(value);
     return true;
 }
+
+void adsPoll(uint32_t now)
+{
+    if (!gAdsOnline) {
+        if (now - gAdsReconnectAt >= 2000) {
+            gAdsReconnectAt = now;
+            adsBegin();
+        }
+        return;
+    }
+    if (gAdsPending) {
+        if (now - gAdsConversionAt < 4) return;
+        int16_t raw = 0;
+        if (!adsRead(raw)) { gAdsPending = false; return; }
+        gAdsRaw[gAdsChannel] = raw;
+        ++gAdsSampleCount[gAdsChannel];
+        gAdsPending = false;
+        gAdsChannel = static_cast<uint8_t>((gAdsChannel + 1) % 4);
+    }
+    if (adsStart(gAdsChannel)) {
+        gAdsPending = true;
+        gAdsConversionAt = now;
+    }
+}
+
+int16_t adsRaw(uint8_t channel) { return channel < 4 ? gAdsRaw[channel] : 0; }
+uint32_t adsSamples(uint8_t channel) { return channel < 4 ? gAdsSampleCount[channel] : 0; }
 
 const char *resetReasonText()
 {

@@ -254,6 +254,12 @@ calibrate ใหม่ได้ที่แท็บ **สัมผัส → Ca
 
 **ข้อควรระวังด้านอินพุต:** แม้ PGA ตั้งช่วง +/-4.096 V แต่ขา A0-A3 ต้องอยู่ในช่วง GND ถึง VDD ของ ADS1115 เท่านั้น (โดยทั่วไปโมดูลจ่าย 3.3 V) ห้ามป้อนแรงดันติดลบหรือเกิน VDD
 
+### หน้า Smart Farm และ Automation
+
+หน้าแรก `Smart Farm` รวมค่าล่าสุด ADC A0-A3, สถานะสวิตช์อินพุต SW0-SW3 และปุ่มควบคุม LED0-LED3 ไว้ด้วยกัน ตั้ง automation แยกต่อ LED ได้ 4 กฎ: เลือกแหล่ง A0-A3 หรือ SW0-SW3; ถ้าเป็น ADC เลือก `<` / `>` และ threshold หน่วย mV; เลือกให้ LED ON หรือ OFF เมื่อเงื่อนไขเป็นจริง พร้อม hysteresis 20 mV เพื่อลดการสลับถี่ใกล้ threshold สวิตช์ SW เป็นอินพุตสำหรับใช้เป็นเงื่อนไข จึงอ่านสถานะได้แต่ไม่สามารถสั่งให้สวิตช์จริงเปลี่ยนสถานะได้ การตั้งค่ากฎเก็บใน NVS หลังรีสตาร์ตยังอยู่
+
+แถบด้านบนยุบเหลือ `Smart Farm` และ `ระบบ`; หน้าตั้งค่าจอ/สัมผัส, RGB/เสียง, PCF/ADC และข้อมูลบอร์ดอยู่ในแท็บย่อยใต้ `ระบบ` การอ่าน ADS1115 และสวิตช์ PCF8574 ใช้ polling กลางชุดเดียว เพื่อให้หน้า Smart Farm และหน้าวิเคราะห์ในระบบใช้ข้อมูลร่วมกัน
+
 ## 11. โครงสร้างไฟล์
 
 ```
@@ -270,11 +276,11 @@ Lab_Template_Start/
 │  ├─ hal_touch.cpp          อ่าน XPT2046 + สมการ affine + least squares
 │  ├─ hal_led.cpp            RGB LED (PWM, active-LOW)
 │  ├─ hal_sound.cpp          ลำโพง (PWM, เล่นใน task แยก)
-│  ├─ ui.h, ui_main.cpp      tabview 7 แท็บ + ฟังก์ชันช่วยสร้าง widget
+│  ├─ ui.h, ui_main.cpp      แท็บหลัก Smart Farm / ระบบ + ฟังก์ชันช่วยสร้าง widget
 │  ├─ ui_display.cpp         แท็บจอภาพ + ทดสอบเต็มจอ
 │  ├─ ui_touch.cpp           แท็บสัมผัส + ทดสอบ 9 จุด
 │  ├─ ui_calibrate.cpp       หน้า calibrate
-│  ├─ ui_led.cpp, ui_pcf.cpp, ui_adc.cpp, ui_sound.cpp, ui_system.cpp
+│  ├─ ui_led.cpp, ui_pcf.cpp, ui_adc.cpp, ui_farm.cpp, ui_sound.cpp, ui_system.cpp
 │  └─ fonts/font_th_16.c, font_th_24.c   ฟอนต์ไทย (สร้างด้วยสคริปต์ ห้ามแก้มือ)
 └─ tools/
    ├─ gen_lvgl_fonts.ps1     สร้างฟอนต์ไทยใหม่

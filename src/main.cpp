@@ -212,6 +212,8 @@ void loop()
     delay(constrain(wait, 1, 5));
 
     const uint32_t now = millis();
+    hal::pcfPoll(now);
+    hal::adsPoll(now);
     serialCommands();
     bootButton(now);
 

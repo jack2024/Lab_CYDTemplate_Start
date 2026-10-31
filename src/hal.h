@@ -75,8 +75,12 @@ int ldrRaw();  // 0-4095 (ยิ่งสว่างยิ่งต่ำ)
 // ---- PCF8574 (บอร์ดสีแดง, A0-A2=0, P0-P3 LED sink, P4-P7 active-low input) ----
 bool pcfBegin();
 bool pcfOnline();
+uint8_t pcfLedMask();
 bool pcfWriteLeds(uint8_t onMask);  // bit0..3 = LED0..LED3 ON; sinks LOW
 bool pcfReadSwitches(uint8_t &pressedMask);  // bit0..3 = SW0..SW3 pressed
+void pcfPoll(uint32_t now);
+uint8_t pcfSwitchMask();
+bool pcfSwitchValid();
 
 // ---- ADS1115 ADC (I2C bus เดียวกับ PCF8574) ----
 bool adsBegin();
@@ -84,6 +88,9 @@ bool adsOnline();
 uint8_t adsAddress();
 bool adsStart(uint8_t channel);  // single-shot conversion, A0-A3 (0..3)
 bool adsRead(int16_t &raw);     // อ่าน conversion ที่เริ่มไว้แล้ว
+void adsPoll(uint32_t now);
+int16_t adsRaw(uint8_t channel);
+uint32_t adsSamples(uint8_t channel);
 
 // ---- เสียง (hal_sound.cpp) เล่นใน task แยก ไม่ทำให้ UI หน่วง ----
 enum class Melody : uint8_t { Startup, Success, Error, Scale, Song, Count };
