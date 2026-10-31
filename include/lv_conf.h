@@ -57,6 +57,7 @@
 #define LV_USE_BAR 1
 #define LV_USE_ARC 1
 #define LV_USE_LINE 1
+#define LV_USE_CHART 1
 #define LV_USE_TABVIEW 1
 #define LV_USE_FLEX 1
 

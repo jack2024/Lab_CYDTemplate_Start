@@ -246,7 +246,13 @@ calibrate ใหม่ได้ที่แท็บ **สัมผัส → Ca
 | P0-P3 | LED0-LED3 แบบ Isink | ON = ขา LOW เพื่อ sink กระแส, OFF = HIGH |
 | P4-P7 | Switch0-Switch3 พร้อม pull-up 10k | ปล่อย = HIGH, กด = LOW (Active Low) |
 
-แท็บ `PCF I/O` แสดงสถานะการเชื่อมต่อ สั่ง LED แยกช่องหรือเปิด/ปิดทั้งหมด และแสดงสถานะสวิตช์แบบ polling พร้อม debounce และเสียงตอบรับ การต่อ LED แบบ Isink ต้องต่อ LED/ตัวต้านทานจำกัดกระแสเข้ากับ VCC ตามแรงดันโมดูล แล้วลงขา PCF; ตรวจสอบแรงดันและกระแสของ LED ก่อนจ่ายไฟ
+แท็บ `PCF I/O` แสดงสถานะการเชื่อมต่อ สั่ง LED แยกช่องหรือเปิด/ปิดทั้งหมด และแสดงสถานะสวิตช์แบบ polling พร้อม debounce และเสียงตอบรับ การต่อ LED แบบ Isink ให้ต่อ VCC -> ตัวต้านทานจำกัดกระแส -> LED -> ขา P0-P3; ตรวจสอบแรงดันและกระแสของ LED ก่อนจ่ายไฟ
+
+### ADS1115: กราฟและ Gauge 4 ช่อง
+
+ต่อ ADS1115 เข้าบัสเดียวกัน: SDA -> GPIO27, SCL -> GPIO22, GND ร่วมกัน และต่อ ADDR ลง GND เพื่อได้ address `0x48` (โปรแกรมค้นหา `0x48-0x4B` ด้วย) หน้า `ADC` แสดง A0-A3 เป็นกราฟย้อนหลัง 24 ตัวอย่างและ gauge 0-3.30 V พร้อมค่าโวลต์ ปุ่ม `PAUSE/RESUME` หยุดหรือเริ่มการอ่านได้
+
+**ข้อควรระวังด้านอินพุต:** แม้ PGA ตั้งช่วง +/-4.096 V แต่ขา A0-A3 ต้องอยู่ในช่วง GND ถึง VDD ของ ADS1115 เท่านั้น (โดยทั่วไปโมดูลจ่าย 3.3 V) ห้ามป้อนแรงดันติดลบหรือเกิน VDD
 
 ## 11. โครงสร้างไฟล์
 
@@ -259,17 +265,16 @@ Lab_Template_Start/
 │  └─ lv_conf.h              ค่า LVGL (ฟอนต์ไทยเป็นฟอนต์หลัก, widget ที่ใช้, ธีม default โหมดมืด)
 ├─ src/
 │  ├─ main.cpp               เริ่มระบบ + ผูก LVGL กับจอ (DMA) และจอสัมผัส + คำสั่ง Serial + ปุ่ม BOOT
-│  ├─ hal.h                  interface ชั้นฮาร์ดแวร์ (ไม่รู้จัก LVGL)
+│  ├─ hal.h, hal.cpp         ชั้นฮาร์ดแวร์: NVS, LDR, PCF8574 และ ADS1115
 │  ├─ hal_display.cpp        จอ + MADCTL/INVON + ไฟหลังจอ
-│  ├─ hal.cpp                NVS, LDR และ PCF8574 ผ่าน I²C
 │  ├─ hal_touch.cpp          อ่าน XPT2046 + สมการ affine + least squares
 │  ├─ hal_led.cpp            RGB LED (PWM, active-LOW)
 │  ├─ hal_sound.cpp          ลำโพง (PWM, เล่นใน task แยก)
-│  ├─ ui.h, ui_main.cpp      tabview 6 แท็บ + ฟังก์ชันช่วยสร้าง widget
+│  ├─ ui.h, ui_main.cpp      tabview 7 แท็บ + ฟังก์ชันช่วยสร้าง widget
 │  ├─ ui_display.cpp         แท็บจอภาพ + ทดสอบเต็มจอ
 │  ├─ ui_touch.cpp           แท็บสัมผัส + ทดสอบ 9 จุด
 │  ├─ ui_calibrate.cpp       หน้า calibrate
-│  ├─ ui_led.cpp, ui_pcf.cpp, ui_sound.cpp, ui_system.cpp
+│  ├─ ui_led.cpp, ui_pcf.cpp, ui_adc.cpp, ui_sound.cpp, ui_system.cpp
 │  └─ fonts/font_th_16.c, font_th_24.c   ฟอนต์ไทย (สร้างด้วยสคริปต์ ห้ามแก้มือ)
 └─ tools/
    ├─ gen_lvgl_fonts.ps1     สร้างฟอนต์ไทยใหม่

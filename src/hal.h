@@ -78,6 +78,13 @@ bool pcfOnline();
 bool pcfWriteLeds(uint8_t onMask);  // bit0..3 = LED0..LED3 ON; sinks LOW
 bool pcfReadSwitches(uint8_t &pressedMask);  // bit0..3 = SW0..SW3 pressed
 
+// ---- ADS1115 ADC (I2C bus เดียวกับ PCF8574) ----
+bool adsBegin();
+bool adsOnline();
+uint8_t adsAddress();
+bool adsStart(uint8_t channel);  // single-shot conversion, A0-A3 (0..3)
+bool adsRead(int16_t &raw);     // อ่าน conversion ที่เริ่มไว้แล้ว
+
 // ---- เสียง (hal_sound.cpp) เล่นใน task แยก ไม่ทำให้ UI หน่วง ----
 enum class Melody : uint8_t { Startup, Success, Error, Scale, Song, Count };
 constexpr const char *VOLUME_NAMES[4] = {"OFF", "LOW", "MID", "HIGH"};

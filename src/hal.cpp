@@ -13,6 +13,8 @@ Preferences gPrefs;
 esp_reset_reason_t gReset = ESP_RST_UNKNOWN;
 bool gPcfOnline = false;
 uint8_t gPcfLeds = 0;
+bool gAdsOnline = false;
+uint8_t gAdsAddress = cyd::ADS1115_ADDRESS;
 }  // namespace
 
 Preferences &prefs()
@@ -28,6 +30,7 @@ void begin()
     Wire.begin(cyd::I2C_PIN_SDA, cyd::I2C_PIN_SCL);
     Wire.setClock(100000);
     pcfBegin();
+    adsBegin();
 }
 
 bool pcfBegin()
@@ -60,6 +63,53 @@ bool pcfReadSwitches(uint8_t &pressedMask)
     gPcfOnline = true;
     // Switches pull the pin LOW when pressed; normalize to 1 = pressed.
     pressedMask = static_cast<uint8_t>((~(port >> 4)) & 0x0F);
+    return true;
+}
+
+bool adsBegin()
+{
+    gAdsOnline = false;
+    // ADS1115 address follows ADDR wiring: GND, VDD, SDA, SCL -> 0x48..0x4B.
+    for (uint8_t offset = 0; offset < 4; ++offset) {
+        const uint8_t address = static_cast<uint8_t>(cyd::ADS1115_ADDRESS + offset);
+        Wire.beginTransmission(address);
+        Wire.write(0x01);  // configuration register pointer
+        if (Wire.endTransmission(false) != 0) continue;
+        if (Wire.requestFrom(address, static_cast<uint8_t>(2)) != 2) continue;
+        while (Wire.available()) Wire.read();
+        gAdsAddress = address;
+        gAdsOnline = true;
+        return true;
+    }
+    return false;
+}
+
+bool adsOnline() { return gAdsOnline; }
+uint8_t adsAddress() { return gAdsAddress; }
+
+bool adsStart(uint8_t channel)
+{
+    if (!gAdsOnline || channel > 3) return false;
+    // OS=1, single-ended MUX AINx/GND, PGA +/-4.096 V, single-shot,
+    // 860 SPS, comparator disabled. Keep each input within GND..VDD.
+    const uint16_t config = static_cast<uint16_t>(0xC3E3 | (channel << 12));
+    Wire.beginTransmission(gAdsAddress);
+    Wire.write(0x01);
+    Wire.write(static_cast<uint8_t>(config >> 8));
+    Wire.write(static_cast<uint8_t>(config & 0xFF));
+    gAdsOnline = Wire.endTransmission() == 0;
+    return gAdsOnline;
+}
+
+bool adsRead(int16_t &raw)
+{
+    if (!gAdsOnline) return false;
+    Wire.beginTransmission(gAdsAddress);
+    Wire.write(0x00);  // conversion register
+    if (Wire.endTransmission(false) != 0) { gAdsOnline = false; return false; }
+    if (Wire.requestFrom(gAdsAddress, static_cast<uint8_t>(2)) != 2) { gAdsOnline = false; return false; }
+    const uint16_t value = static_cast<uint16_t>(Wire.read()) << 8 | Wire.read();
+    raw = static_cast<int16_t>(value);
     return true;
 }
 

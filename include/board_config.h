@@ -43,6 +43,8 @@ constexpr uint8_t BOOT_BUTTON_PIN = 0;   // ปุ่ม BOOT (กด = LOW) ใ
 constexpr uint8_t I2C_PIN_SDA = 27;
 constexpr uint8_t I2C_PIN_SCL = 22;
 constexpr uint8_t PCF8574_ADDRESS = 0x20;  // A0-A2 = LOW (บอร์ด PCF8574 สีแดง)
+constexpr uint8_t ADS1115_ADDRESS = 0x48;  // ADDR = GND; HAL scans 0x48-0x4B
+constexpr uint16_t ADS1115_DISPLAY_MAX_MV = 3300;  // อินพุตต้องอยู่ในช่วง 0..VDD (CYD 3.3 V)
 
 // ---- microSD (ยังไม่ใช้ใน Lab นี้) ----
 constexpr uint8_t SD_PIN_CS = 5;
