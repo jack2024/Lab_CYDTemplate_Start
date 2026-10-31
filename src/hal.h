@@ -72,6 +72,12 @@ void ledGetRgb(uint8_t &r, uint8_t &g, uint8_t &b);
 // ---- เซนเซอร์แสง ----
 int ldrRaw();  // 0-4095 (ยิ่งสว่างยิ่งต่ำ)
 
+// ---- PCF8574 (บอร์ดสีแดง, A0-A2=0, P0-P3 LED sink, P4-P7 active-low input) ----
+bool pcfBegin();
+bool pcfOnline();
+bool pcfWriteLeds(uint8_t onMask);  // bit0..3 = LED0..LED3 ON; sinks LOW
+bool pcfReadSwitches(uint8_t &pressedMask);  // bit0..3 = SW0..SW3 pressed
+
 // ---- เสียง (hal_sound.cpp) เล่นใน task แยก ไม่ทำให้ UI หน่วง ----
 enum class Melody : uint8_t { Startup, Success, Error, Scale, Song, Count };
 constexpr const char *VOLUME_NAMES[4] = {"OFF", "LOW", "MID", "HIGH"};

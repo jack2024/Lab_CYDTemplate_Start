@@ -237,7 +237,18 @@ calibrate ใหม่ได้ที่แท็บ **สัมผัส → Ca
 | `VOLUME_DUTY` | 0, 24, 96, 512 | duty ของแต่ละระดับความดัง |
 | `CLICK_SOUND` | true | เสียงติ๊กเมื่อแตะจอ |
 
-## 10. โครงสร้างไฟล์
+## 10. PCF8574: ไฟ LED 4 ช่อง + สวิตช์ 4 ช่อง
+
+ใช้โมดูล PCF8574 บอร์ดสีแดง โดยตั้ง A0-A2 เป็น LOW ทั้งหมด ได้ I²C address `0x20` ต่อ SDA ไป GPIO27 และ SCL ไป GPIO22 ของ CYD พร้อมต่อ GND ร่วมกันและจ่ายไฟตามสเปกโมดูล
+
+| ขา PCF8574 | การใช้งาน | ตรรกะ |
+|---|---|---|
+| P0-P3 | LED0-LED3 แบบ Isink | ON = ขา LOW เพื่อ sink กระแส, OFF = HIGH |
+| P4-P7 | Switch0-Switch3 พร้อม pull-up 10k | ปล่อย = HIGH, กด = LOW (Active Low) |
+
+แท็บ `PCF I/O` แสดงสถานะการเชื่อมต่อ สั่ง LED แยกช่องหรือเปิด/ปิดทั้งหมด และแสดงสถานะสวิตช์แบบ polling พร้อม debounce และเสียงตอบรับ การต่อ LED แบบ Isink ต้องต่อ LED/ตัวต้านทานจำกัดกระแสเข้ากับ VCC ตามแรงดันโมดูล แล้วลงขา PCF; ตรวจสอบแรงดันและกระแสของ LED ก่อนจ่ายไฟ
+
+## 11. โครงสร้างไฟล์
 
 ```
 Lab_Template_Start/
@@ -248,16 +259,17 @@ Lab_Template_Start/
 │  └─ lv_conf.h              ค่า LVGL (ฟอนต์ไทยเป็นฟอนต์หลัก, widget ที่ใช้, ธีม default โหมดมืด)
 ├─ src/
 │  ├─ main.cpp               เริ่มระบบ + ผูก LVGL กับจอ (DMA) และจอสัมผัส + คำสั่ง Serial + ปุ่ม BOOT
-│  ├─ hal.h, hal.cpp         ชั้นฮาร์ดแวร์ (ไม่รู้จัก LVGL): NVS, LDR
+│  ├─ hal.h                  interface ชั้นฮาร์ดแวร์ (ไม่รู้จัก LVGL)
 │  ├─ hal_display.cpp        จอ + MADCTL/INVON + ไฟหลังจอ
+│  ├─ hal.cpp                NVS, LDR และ PCF8574 ผ่าน I²C
 │  ├─ hal_touch.cpp          อ่าน XPT2046 + สมการ affine + least squares
 │  ├─ hal_led.cpp            RGB LED (PWM, active-LOW)
 │  ├─ hal_sound.cpp          ลำโพง (PWM, เล่นใน task แยก)
-│  ├─ ui.h, ui_main.cpp      tabview 5 แท็บ + ฟังก์ชันช่วยสร้าง widget
+│  ├─ ui.h, ui_main.cpp      tabview 6 แท็บ + ฟังก์ชันช่วยสร้าง widget
 │  ├─ ui_display.cpp         แท็บจอภาพ + ทดสอบเต็มจอ
 │  ├─ ui_touch.cpp           แท็บสัมผัส + ทดสอบ 9 จุด
 │  ├─ ui_calibrate.cpp       หน้า calibrate
-│  ├─ ui_led.cpp, ui_sound.cpp, ui_system.cpp
+│  ├─ ui_led.cpp, ui_pcf.cpp, ui_sound.cpp, ui_system.cpp
 │  └─ fonts/font_th_16.c, font_th_24.c   ฟอนต์ไทย (สร้างด้วยสคริปต์ ห้ามแก้มือ)
 └─ tools/
    ├─ gen_lvgl_fonts.ps1     สร้างฟอนต์ไทยใหม่
@@ -267,7 +279,7 @@ Lab_Template_Start/
 ค่าที่จำถาวรอยู่ใน NVS namespace `labstart`: `disp` (ค่าจอ + ชิปจอ), `bl` (ความสว่าง), `cal` (สมการ calibrate), `vol` (ความดัง)
 ค่าจอจำแยกตามชิป ถ้าเปลี่ยน env จาก `cyd` เป็น `cyd_st7789` จะเริ่มจากค่าเริ่มต้นของชิปใหม่
 
-## 11. นำไปต่อยอดใน Lab ถัดไป
+## 12. นำไปต่อยอดใน Lab ถัดไป
 
 1. **เพิ่มแท็บ:** เขียน `ui_xxx_tab(lv_obj_t *tab)` แบบเดียวกับ `ui_led_tab` แล้วเพิ่มในตาราง `tabs[]` ใน `ui_main.cpp`
 2. **ใช้ฟังก์ชันช่วย:** `ui_card()` (การ์ดเรียงแนวตั้ง), `ui_row()` (แถวปุ่ม), `ui_btn()`, `ui_switch_row()`, `ui_label()`
@@ -276,7 +288,7 @@ Lab_Template_Start/
 5. **ต่อเซนเซอร์:** ใช้ I2C ที่ GPIO27 (SDA) / GPIO22 (SCL) **ห้ามใช้ GPIO21** (ขาไฟหลังจอ จอจะกะพริบ)
 6. **ห้ามใช้ `delay()` ยาวๆ** ใน callback ของ LVGL ให้ใช้ `lv_timer_create()` แทน (ดูตัวอย่าง `tick()` ใน `ui_led.cpp`)
 
-## 12. ปัญหาที่พบบ่อย
+## 13. ปัญหาที่พบบ่อย
 
 | อาการ | สาเหตุ / วิธีแก้ |
 |---|---|
@@ -292,7 +304,7 @@ Lab_Template_Start/
 | ภาษาไทยบางตัวไม่แสดง | ตัวอักษรนั้นไม่อยู่ในฟอนต์ ดูหัวข้อ 4 "ข้อความภาษาไทย" |
 | upload ไม่ผ่าน | ปิด Serial Monitor / กด BOOT ค้างตอน `Connecting...` / ถอดสาย USB แล้วเสียบใหม่ |
 
-## 13. สิ่งที่ยังไม่ได้ยืนยัน (ผู้ทดสอบ/ผู้สอนควรตรวจและบันทึก)
+## 14. สิ่งที่ยังไม่ได้ยืนยัน (ผู้ทดสอบ/ผู้สอนควรตรวจและบันทึก)
 
 | ข้อ | สถานะ |
 |---|---|

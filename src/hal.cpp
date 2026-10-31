@@ -1,6 +1,7 @@
 #include "hal.h"
 
 #include <esp_system.h>
+#include <Wire.h>
 
 #include "app_config.h"
 #include "board_config.h"
@@ -10,6 +11,8 @@ namespace hal {
 namespace {
 Preferences gPrefs;
 esp_reset_reason_t gReset = ESP_RST_UNKNOWN;
+bool gPcfOnline = false;
+uint8_t gPcfLeds = 0;
 }  // namespace
 
 Preferences &prefs()
@@ -22,6 +25,42 @@ void begin()
     gReset = esp_reset_reason();
     gPrefs.begin(app::NVS_NAMESPACE, false);
     pinMode(cyd::BOOT_BUTTON_PIN, INPUT_PULLUP);
+    Wire.begin(cyd::I2C_PIN_SDA, cyd::I2C_PIN_SCL);
+    Wire.setClock(100000);
+    pcfBegin();
+}
+
+bool pcfBegin()
+{
+    Wire.beginTransmission(cyd::PCF8574_ADDRESS);
+    // Quasi-bidirectional inputs require HIGH in the output latch. LEDs are
+    // active-low current sinks, so an ON bit is written as LOW on P0-P3.
+    const uint8_t port = static_cast<uint8_t>((~gPcfLeds & 0x0F) | 0xF0);
+    Wire.write(port);
+    gPcfOnline = Wire.endTransmission() == 0;
+    return gPcfOnline;
+}
+
+bool pcfOnline() { return gPcfOnline; }
+
+bool pcfWriteLeds(uint8_t onMask)
+{
+    gPcfLeds = onMask & 0x0F;
+    Wire.beginTransmission(cyd::PCF8574_ADDRESS);
+    Wire.write(static_cast<uint8_t>((~gPcfLeds & 0x0F) | 0xF0));
+    gPcfOnline = Wire.endTransmission() == 0;
+    return gPcfOnline;
+}
+
+bool pcfReadSwitches(uint8_t &pressedMask)
+{
+    Wire.requestFrom(static_cast<uint8_t>(cyd::PCF8574_ADDRESS), static_cast<uint8_t>(1));
+    if (!Wire.available()) { gPcfOnline = false; return false; }
+    const uint8_t port = Wire.read();
+    gPcfOnline = true;
+    // Switches pull the pin LOW when pressed; normalize to 1 = pressed.
+    pressedMask = static_cast<uint8_t>((~(port >> 4)) & 0x0F);
+    return true;
 }
 
 const char *resetReasonText()

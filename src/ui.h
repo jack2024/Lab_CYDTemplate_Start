@@ -27,6 +27,7 @@ void ui_init();
 void ui_display_tab(lv_obj_t *tab);
 void ui_touch_tab(lv_obj_t *tab);
 void ui_led_tab(lv_obj_t *tab);
+void ui_pcf_tab(lv_obj_t *tab);
 void ui_sound_tab(lv_obj_t *tab);
 void ui_system_tab(lv_obj_t *tab);
 
